@@ -10,6 +10,8 @@
 #include <iostream>
 #include <fstream>
 #include "curl/curl.h"
+#include <string>
+#include <random>
 
 #pragma comment(lib, "libcurl_a.lib")
 
@@ -57,6 +59,24 @@ std::string expire_date = std::string(skCrypt(""));
 std::string hwid = std::string(skCrypt(""));
 
 std::string file_to_download = std::string(skCrypt(""));
+
+const std::string charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+// Generate pair
+std::string generateRandomString(int length = 18) {
+    std::string result;
+    
+    // Initialize random number generator
+    std::random_device rd;  // Obtain a random number from hardware
+    std::mt19937 gen(rd()); // Seed the generator
+    std::uniform_int_distribution<> dis(0, charset.size() - 1); // Define the range
+
+    for (int i = 0; i < length; ++i) {
+        result += charset[dis(gen)]; // Append random character to result
+    }
+    
+    return result;
+}
 
 // Function takes an input string and calculates its SHA-512 hash using the OpenSSL library
 std::string hash(const std::string input) {
@@ -167,6 +187,7 @@ bool initRequest() {
     doc.AddMember("token", rapidjson::Value(APPLICATION_TOKEN.c_str(), allocator), allocator);
     doc.AddMember("version", rapidjson::Value(APPLICATION_VERSION.c_str(), allocator), allocator);
     doc.AddMember("hwid", rapidjson::Value(getHWID().c_str(), allocator), allocator);
+	doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer writer(buffer);
@@ -222,6 +243,7 @@ bool loginRequest(std::string username, std::string password, std::string key) {
         doc.AddMember("password", rapidjson::Value(password.c_str(), allocator), allocator);
         doc.AddMember("key", rapidjson::Value(key.c_str(), allocator), allocator);
         doc.AddMember("hwid", rapidjson::Value(getHWID().c_str(), allocator), allocator);
+		doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
 
         rapidjson::StringBuffer buffer;
         rapidjson::Writer writer(buffer);
@@ -244,6 +266,7 @@ bool loginRequest(std::string username, std::string password, std::string key) {
     doc.AddMember("username", rapidjson::Value(username.c_str(), allocator), allocator);
     doc.AddMember("password", rapidjson::Value(password.c_str(), allocator), allocator);
     doc.AddMember("hwid", rapidjson::Value(getHWID().c_str(), allocator), allocator);
+	doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer writer(buffer);
@@ -317,6 +340,7 @@ bool registerRequest(std::string username, std::string password, std::string key
     doc.AddMember("password", rapidjson::Value(password.c_str(), allocator), allocator);
     doc.AddMember("key", rapidjson::Value(key.c_str(), allocator), allocator);
     doc.AddMember("hwid", rapidjson::Value(getHWID().c_str(), allocator), allocator);
+	doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer writer(buffer);
@@ -371,6 +395,7 @@ bool downloadsRequest(std::string fileid) {
     auto& allocator = doc.GetAllocator();
     doc.AddMember("type", rapidjson::Value("download", allocator), allocator);
     doc.AddMember("fileid", rapidjson::Value(fileid.c_str(), allocator), allocator);
+	doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer writer(buffer);
@@ -469,6 +494,7 @@ void banUser() {
     doc.AddMember("type", rapidjson::Value("ban_user", allocator), allocator);
     doc.AddMember("session_id", rapidjson::Value(session_id.c_str(), allocator), allocator);
     doc.AddMember("hwid", rapidjson::Value(getHWID().c_str(), allocator), allocator);
+	doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer writer(buffer);
