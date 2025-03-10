@@ -26,24 +26,24 @@ std::string APPLICATION_SECRET = ""; // Your application secret goes here;
 std::string APPLICATION_VERSION = "1.0"; // Your application version goes here;
 
 // Advanced configuration
-const auto invalid_account_key_message = skCrypt("Invalid account key!");
-const auto invalid_application_key_message = skCrypt("Invalid application key!");
-const auto invalid_request_message = skCrypt("Invalid request!");
-const auto outdated_version_message = skCrypt("Outdated version, please upgrade!");
-const auto busy_sessions_message = skCrypt("Please try again later!");
-const auto unavailable_session_message = skCrypt("Invalid session. Please re-launch the app!");
-const auto used_session_message = skCrypt("Why did the computer go to therapy? Because it had a case of 'Request Repeatitis' and couldn't stop asking for the same thing over and over again!");
-const auto overcrowded_session_message = skCrypt("Session limit exceeded. Please re-launch the app!");
-const auto unauthorized_session_message = skCrypt("Unauthorized session.");
-const auto expired_session_message = skCrypt("Your session has timed out. Please re-launch the app!");
-const auto invalid_user_message = skCrypt("Incorrect login credentials!");
-const auto invalid_file_message = skCrypt("Incorrect file credentials!");
-const auto invalid_path_message = skCrypt("Oops, the bytes of the file could not be written. Please check the path of the file!");
-const auto incorrect_hwid_message = skCrypt("Hardware ID mismatch. Please try again with the correct device!");
-const auto expired_user_message = skCrypt("Your subscription has ended. Please renew to continue using our service!");
-const auto used_name_message = skCrypt("Username already taken. Please choose a different username!");
-const auto invalid_key_message = skCrypt("Invalid key. Please enter a valid key!");
-const auto upgrade_your_eauth_message = skCrypt("Upgrade your Eauth plan to exceed the limits!");
+const std::string invalid_account_key_message = std::string(skCrypt("Invalid account key!"));
+const std::string invalid_application_key_message = std::string(skCrypt("Invalid application key!"));
+const std::string invalid_request_message = std::string(skCrypt("Invalid request!"));
+const std::string outdated_version_message = std::string(skCrypt("Outdated version, please upgrade!"));
+const std::string busy_sessions_message = std::string(skCrypt("Please try again later!"));
+const std::string unavailable_session_message = std::string(skCrypt("Invalid session. Please re-launch the app!"));
+const std::string used_session_message = std::string(skCrypt("Why did the computer go to therapy? Because it had a case of 'Request Repeatitis' and couldn't stop asking for the same thing over and over again!"));
+const std::string overcrowded_session_message = std::string(skCrypt("Session limit exceeded. Please re-launch the app!"));
+const std::string unauthorized_session_message = std::string(skCrypt("Unauthorized session."));
+const std::string expired_session_message = std::string(skCrypt("Your session has timed out. Please re-launch the app!"));
+const std::string invalid_user_message = std::string(skCrypt("Incorrect login credentials!"));
+const std::string invalid_file_message = std::string(skCrypt("Incorrect file credentials!"));
+const std::string invalid_path_message = std::string(skCrypt("Oops, the bytes of the file could not be written. Please check the path of the file!"));
+const std::string incorrect_hwid_message = std::string(skCrypt("Hardware ID mismatch. Please try again with the correct device!"));
+const std::string expired_user_message = std::string(skCrypt("Your subscription has ended. Please renew to continue using our service!"));
+const std::string used_name_message = std::string(skCrypt("Username already taken. Please choose a different username!"));
+const std::string invalid_key_message = std::string(skCrypt("Invalid key. Please enter a valid key!"));
+const std::string upgrade_your_eauth_message = std::string(skCrypt("Upgrade your Eauth plan to exceed the limits!"));
 
 // Dynamic configuration (this refers to configuration settings that can be changed during runtime)
 bool init = false;
@@ -170,7 +170,7 @@ std::string getHWID() {
 }
 
 // Report error
-void raiseError(auto error) {
+void raiseError(std::string error) {
     error_message = error;
 }
 
@@ -282,12 +282,12 @@ bool loginRequest(std::string username, std::string password, std::string key) {
         register_date = doc["register_date"].GetString();
         expire_date = doc["expire_date"].GetString();
         std::string word = "later";
-        std::stringstream ss(expire_date);
-        std::string token;
-        expire_date = "";
-        while (ss >> token) {
-            if (token != word) {
-                expire_date += token + " ";
+        size_t pos = 0;
+        while ((pos = expire_date.find(word, pos)) != std::string::npos) {
+            expire_date.erase(pos, word.length());
+            // Optional: To handle extra spaces left after removal
+            if (pos < expire_date.length() && expire_date[pos] == ' ') {
+                expire_date.erase(pos, 1); // Remove space after the word
             }
         }
         expire_date.pop_back(); // remove the last word
