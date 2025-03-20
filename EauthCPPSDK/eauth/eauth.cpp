@@ -394,8 +394,9 @@ bool downloadsRequest(std::string fileid) {
     doc.SetObject();
     auto& allocator = doc.GetAllocator();
     doc.AddMember("type", rapidjson::Value("download", allocator), allocator);
-    doc.AddMember("fileid", rapidjson::Value(fileid.c_str(), allocator), allocator);
-	doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
+    doc.AddMember("session_id", rapidjson::Value(session_id.c_str(), allocator), allocator);
+    doc.AddMember("file_id", rapidjson::Value(fileid.c_str(), allocator), allocator);
+    doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer writer(buffer);
