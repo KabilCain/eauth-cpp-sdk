@@ -182,7 +182,7 @@
     <ClInclude Include="eauth\eauth.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="eauth\skCrypter.h">
+    <ClInclude Include="eauth\XorStr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
