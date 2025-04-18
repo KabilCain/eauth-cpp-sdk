@@ -19,6 +19,9 @@ bool registerRequest(std::string username, std::string password, std::string key
 bool downloadRequest(std::string fileid, const std::string& filename, const std::string& path);
 ```
 ```cpp
+std::string webhookRequest(std::string webhookName, std::string parameters, std::string body, std::string contentType);
+```
+```cpp
 void banUser();
 ```
 
@@ -29,7 +32,7 @@ Navigate to `eauth/eauth.cpp`, and fill these lines of code:
 
 ```cpp
 // Required configuration
-std::string APPLICATION_TOKEN = ""; // Your application token goes here
-std::string APPLICATION_SECRET = ""; // Your application secret goes here;
-std::string APPLICATION_VERSION = "1.0"; // Your application version goes here;
+std::string APPLICATION_TOKEN = _XOR_("application_token_here"); // Your application token goes here
+std::string APPLICATION_SECRET = _XOR_("application_secret_here"); // Your application secret goes here;
+std::string APPLICATION_VERSION = _XOR_("application_version_here"); // Your application version goes here;
 ```

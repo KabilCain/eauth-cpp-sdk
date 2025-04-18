@@ -21,13 +21,11 @@
 #pragma comment(lib, "crypt32.lib" )
 
 // Required configuration
-std::string APPLICATION_TOKEN = _XOR_(""); // Your application token goes here
-std::string APPLICATION_SECRET = _XOR_(""); // Your application secret goes here;
-std::string APPLICATION_VERSION = _XOR_("1.0"); // Your application version goes here;
+std::string APPLICATION_TOKEN = _XOR_("application_token_here"); // Your application token goes here
+std::string APPLICATION_SECRET = _XOR_("application_secret_here"); // Your application secret goes here;
+std::string APPLICATION_VERSION = _XOR_("application_version_here"); // Your application version goes here;
 
 // Advanced configuration
-const auto invalid_account_key_message = _XOR_("Invalid account key!");
-const std::string invalid_application_key_message = _XOR_("Invalid application key!");
 const std::string invalid_request_message = _XOR_("Invalid request!");
 const std::string outdated_version_message = _XOR_("Outdated version, please upgrade!");
 const std::string busy_sessions_message = _XOR_("Please try again later!");
@@ -44,6 +42,7 @@ const std::string expired_user_message = _XOR_("Your subscription has ended. Ple
 const std::string used_name_message = _XOR_("Username already taken. Please choose a different username!");
 const std::string invalid_key_message = _XOR_("Invalid key. Please enter a valid key!");
 const std::string upgrade_your_eauth_message = _XOR_("Upgrade your Eauth plan to exceed the limits!");
+const std::string invalidWebhookMessage = _XOR_("Webhook data are false.");
 
 // Dynamic configuration (this refers to configuration settings that can be changed during runtime)
 bool init = false;
@@ -399,10 +398,6 @@ bool downloadsRequest(std::string fileid) {
         file_to_download = doc["link"].GetString();
         return true;
     }
-    else if (message == _XOR_("invalid_account_key")) {
-        raiseError(invalid_account_key_message);
-        return false;
-    }
     else if (message == _XOR_("invalid_request")) {
         raiseError(invalid_request_message);
         return false;
@@ -433,14 +428,14 @@ static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdat
 }
 
 // Write file
-bool downloadRequest(std::string fileid, const std::string& filename, const std::string& path) {
+bool downloadRequest(std::string fileID, const std::string& fileName, const std::string& path) {
     std::filesystem::create_directories(path); // Create the directory path if it doesn't exist
 
-    if (!downloadsRequest(fileid)) {
+    if (!downloadsRequest(fileID)) {
         return false;
     }
 
-    std::string savePath = path + _XOR_("/") + filename;
+    std::string savePath = path + _XOR_("/") + fileName;
 
     CURL* curl;
     CURLcode res;
@@ -473,6 +468,53 @@ bool downloadRequest(std::string fileid, const std::string& filename, const std:
     }
 
     return true;
+}
+
+// Webhook request
+std::string webhookRequest(std::string webhookName, std::string parameters, std::string body, std::string contentType) {
+    if (!init) {
+        return "";
+    }
+
+    rapidjson::Document doc;
+    doc.SetObject();
+    auto& allocator = doc.GetAllocator();
+    doc.AddMember("type", rapidjson::Value(_XOR_("webhook"), allocator), allocator);
+    doc.AddMember("session_id", rapidjson::Value(session_id.c_str(), allocator), allocator);
+    doc.AddMember("webhook_name", rapidjson::Value(webhookName.c_str(), allocator), allocator);
+    doc.AddMember("parameters", rapidjson::Value(parameters.c_str(), allocator), allocator);
+    doc.AddMember("content_type", rapidjson::Value(contentType.c_str(), allocator), allocator);
+    doc.AddMember("body", rapidjson::Value(body.c_str(), allocator), allocator);
+    doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer writer(buffer);
+    doc.Accept(writer);
+
+    std::string json = runRequest(buffer.GetString());
+    doc.Parse(json.c_str());
+
+    std::string message = doc[_XOR_("message")].GetString();
+    if (message == _XOR_("webhook_success")) {
+        return doc["response"].GetString();
+    }
+    else if (message == _XOR_("invalid_request")) {
+        raiseError(invalid_request_message);
+    }
+    else if (message == _XOR_("session_unavailable")) {
+        raiseError(unavailable_session_message);
+    }
+    else if (message == _XOR_("session_unauthorized")) {
+        raiseError(unauthorized_session_message);
+    }
+    else if (message == _XOR_("session_expired")) {
+        raiseError(expired_session_message);
+    }
+    else if (message == _XOR_("invalid_webhook")) {
+        raiseError(invalidWebhookMessage);
+    }
+
+    return "";
 }
 
 // Ban the user HWID and IP

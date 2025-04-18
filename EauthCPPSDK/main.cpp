@@ -112,6 +112,11 @@ int main() {
         exit(1);
     }
 
+    // Webhook request
+    /*
+    std::string response = webhookRequest("webhook name", "&param=&s=", "body", "application/json");
+    */
+
     // Ban user HWID and IP (You can use this if you have code to detect if users are trying to crack your application or reverse it)
     /*
     banUser();
