@@ -187,6 +187,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="eauth\curl\libcurl_a.lib" />
+    <Library Include="eauth\curl\libcurl_a64.lib" />
+    <Library Include="eauth\curl\libcurl_a86.lib" />
   </ItemGroup>
 </Project>

@@ -12,8 +12,10 @@
 #include "curl/curl.h"
 #include <string>
 #include <random>
+#include <sddl.h>
 
-#pragma comment(lib, "libcurl_a.lib")
+#pragma comment(lib, "eauth/curl/libcurl_a86.lib")
+#pragma comment(lib, "eauth/curl/libcurl_a64.lib")
 
 #pragma comment(lib, "Normaliz.lib")
 #pragma comment(lib, "Ws2_32.lib")
@@ -154,18 +156,45 @@ std::string runRequest(std::string request_data) {
 
 // Get HWID
 std::string getHWID() {
-    char volumeName[MAX_PATH + 1] = { 0 };
-    char fileSystemName[MAX_PATH + 1] = { 0 };
-    DWORD serialNumber = 0;
-    DWORD maxComponentLen = 0;
-    DWORD fileSystemFlags = 0;
+    HANDLE tokenHandle = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &tokenHandle)) {
+        return ""; // Failed to open process token
+    }
 
-    if (GetVolumeInformationA(_XOR_("C:\\"), volumeName, ARRAYSIZE(volumeName), &serialNumber, &maxComponentLen, &fileSystemFlags, fileSystemName, ARRAYSIZE(fileSystemName))) {
-        return std::to_string(serialNumber);
+    DWORD tokenInfoLength = 0;
+    // First call to get the buffer size
+    GetTokenInformation(tokenHandle, TokenUser, nullptr, 0, &tokenInfoLength);
+    if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+        CloseHandle(tokenHandle);
+        return ""; // Failed to get buffer size
     }
-    else {
-        exit(1);
+
+    TOKEN_USER* tokenUser = (TOKEN_USER*)malloc(tokenInfoLength);
+    if (!tokenUser) {
+        CloseHandle(tokenHandle);
+        return ""; // Memory allocation failed
     }
+
+    if (!GetTokenInformation(tokenHandle, TokenUser, tokenUser, tokenInfoLength, &tokenInfoLength)) {
+        free(tokenUser);
+        CloseHandle(tokenHandle);
+        return ""; // Failed to get token information
+    }
+
+    LPSTR stringSid = nullptr;
+    if (!ConvertSidToStringSidA(tokenUser->User.Sid, &stringSid)) {
+        free(tokenUser);
+        CloseHandle(tokenHandle);
+        return ""; // Failed to convert SID to string
+    }
+
+    std::string sidString(stringSid);
+
+    LocalFree(stringSid);
+    free(tokenUser);
+    CloseHandle(tokenHandle);
+
+    return sidString;
 }
 
 // Report error
