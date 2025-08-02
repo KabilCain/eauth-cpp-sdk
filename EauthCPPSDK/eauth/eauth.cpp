@@ -565,3 +565,28 @@ void banUser() {
 
     exit(1);
 }
+
+// Check the user authentication
+bool authMonitor() {
+
+    rapidjson::Document doc;
+    doc.SetObject();
+    auto& allocator = doc.GetAllocator();
+    doc.AddMember("type", rapidjson::Value(_XOR_("auth_monitor"), allocator), allocator);
+    doc.AddMember("session_id", rapidjson::Value(session_id.c_str(), allocator), allocator);
+    doc.AddMember("pair", rapidjson::Value(generateRandomString().c_str(), allocator), allocator);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer writer(buffer);
+    doc.Accept(writer);
+
+    std::string json = runRequest(buffer.GetString());
+    doc.Parse(json.c_str());
+
+    std::string message = doc[_XOR_("message")].GetString();
+    if (message == _XOR_("up")) {
+        return true;
+    }
+
+    return false;
+}

@@ -11,3 +11,4 @@ bool loginRequest(std::string username, std::string password, std::string key);
 bool registerRequest(std::string username, std::string password, std::string key);
 std::string webhookRequest(std::string webhookName, std::string parameters, std::string body = "", std::string contentType = "");
 void banUser();
+bool authMonitor();

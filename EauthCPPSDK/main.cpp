@@ -122,6 +122,13 @@ int main() {
     banUser();
     */
 
+    // Check the user authentication
+    /*
+    if (!authMonitor()) {
+        exit(1);
+    }
+    */
+
     // Download file into a specific path
     /*
     if (!downloadRequest("file_id", "file.format", "./path")) {
