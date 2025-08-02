@@ -24,6 +24,9 @@ std::string webhookRequest(std::string webhookName, std::string parameters, std:
 ```cpp
 void banUser();
 ```
+```cpp
+bool authMonitor();
+```
 
 Configuration
 -------------
