@@ -108,6 +108,7 @@ std::string runRequest(std::string request_data) {
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
+    std::string signature = generateEauthHeader(request_data, APPLICATION_SECRET);
     if (curl) {
         curl_easy_setopt(curl, CURLOPT_URL, _XOR_("https://eauth.us.to/api/1.2/"));
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -115,7 +116,7 @@ std::string runRequest(std::string request_data) {
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_data.c_str());
         struct curl_slist* headers = NULL;
         headers = curl_slist_append(headers, _XOR_("Content-Type: application/json"));
-        std::string user_agent = _XOR_("User-Agent:") + generateEauthHeader(request_data, APPLICATION_SECRET);
+        std::string user_agent = _XOR_("User-Agent:") + signature;
         headers = curl_slist_append(headers, user_agent.c_str());
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headerData);
@@ -137,6 +138,10 @@ std::string runRequest(std::string request_data) {
     std::string message = doc[_XOR_("message")].GetString();
 
     if (message != _XOR_("invalid_request") && message != _XOR_("session_unavailable") && message != _XOR_("session_already_used") && message != _XOR_("invalid_email")) {
+        if (doc[_XOR_("pair")].GetString() != signature) {
+            exit(1);
+        }
+        
         size_t start = headerData.find(_XOR_("Eauth: "));
         if (start == std::string::npos) {
             exit(1);
