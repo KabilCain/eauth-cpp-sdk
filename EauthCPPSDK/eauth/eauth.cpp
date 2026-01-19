@@ -110,7 +110,7 @@ std::string runRequest(std::string request_data) {
     curl = curl_easy_init();
     std::string signature = generateEauthHeader(request_data, APPLICATION_SECRET);
     if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, _XOR_("https://eauth.us.to/api/1.2/"));
+        curl_easy_setopt(curl, CURLOPT_URL, _XOR_("https://eauth.us.to/api/1.3/"));
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_data.c_str());
@@ -151,7 +151,7 @@ std::string runRequest(std::string request_data) {
         if (end == std::string::npos) {
             exit(1);
         }
-        if (generateEauthHeader(json, APPLICATION_SECRET) != headerData.substr(start + 7, end - start - 8)) {
+        if (generateEauthHeader(message + json, APPLICATION_SECRET) != headerData.substr(start + 7, end - start - 8)) {
             exit(1);
         }
     }
