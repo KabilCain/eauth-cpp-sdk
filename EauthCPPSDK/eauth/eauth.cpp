@@ -1,7 +1,6 @@
 #define CURL_STATICLIB
 #include "eauth.h"
 #include "XorStr.h"
-#include "sha/sha512.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
@@ -13,6 +12,13 @@
 #include <string>
 #include <random>
 #include <sddl.h>
+
+#include "mbedtls/sha512.h"
+#include "mbedtls/rsa.h"
+#include "mbedtls/pk.h"
+#include "mbedtls/md.h"
+#include "mbedtls/base64.h"
+#include "mbedtls/error.h"
 
 #pragma comment(lib, "eauth/curl/libcurl_a86.lib")
 #pragma comment(lib, "eauth/curl/libcurl_a64.lib")
@@ -80,8 +86,15 @@ std::string generateRandomString(int length = 18) {
 }
 
 // Function takes an input string and calculates its SHA-512 hash using the OpenSSL library
-std::string hash(const std::string input) {
-    return hmac_hash::sha512(input);
+std::string hash(const std::string& input) {
+    unsigned char output[64];
+    mbedtls_sha512((const unsigned char*)input.data(), input.length(), output, 0);
+    std::ostringstream ss;
+    ss << std::hex << std::setfill('0');
+    for (int i = 0;i < 64;i++) {
+        ss << std::setw(2) << static_cast<int>(output[i]);
+    }
+    return ss.str();
 }
 
 // Generate header token
@@ -98,6 +111,23 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
 bool containsSubstring(const std::string& str, const std::string& substr) {
     return str.find(substr) != std::string::npos;
 }
+
+const std::string PUBLIC_KEY_PEM = _XOR_(R"(
+-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAn2rh1JxHmjlu2UhR80g1
+issihSD2Xuf5Pevlu0ZfRqFkgfdSxCyDwguNo9oTSG+wArktK7QJ0Xao+dsgg1vB
+c7/mF/S+cdiCl8Gg8RTDvHZObqnoPQy8KgaqzilT5KMLp/1r5meky1bRmhFn3F17
+Zkt3VQvM6T+99AMA6l/nDc0U8Xc1UvX9WrnR4UoBYWtO19/UaP/Z0zsFiSlu9iXP
+QotGlL14gQvyByXE2icMR198/dj+wLV9Kirb17KuJtxQo9IHbVAPX3YZ72NPkDR0
+hlATbgwXoLsvy1Jp3LLSV/kUWkWgQgcHp2WXNycpgVJDmfmna+mq0nhDSdCRoBl9
+slU1xvBZTya/IAt5SqfazM/b0xM/uleXISx+oHjRIRM8Se26OByUl6Rtjkg/uSxj
+Jk5ljAR0WjmC4fHD7fLEVbKG8SdQxHN5fb565hh8LlwG1ER6SaxmpmK2N5JC+FLQ
+ihCJVDllLU5AwppZbv4PKUMprjNxZO41cKCcNUBxTX442k8HcXDqoRM2icjb4X35
+SGie3lIw+WvEOr5Hr0vhoQnAwree2BnqMVZIjH34L5vObeToeTnUwXKJ9o7fGRhI
+9P00gyzsFHQgiMKOygioj9NdobtPIPahcStagR9PQLR117Fhyx2R9RSZESZB4pIY
+FtlOd7spqVctsJWnfVo9ai0CAwEAAQ==
+-----END PUBLIC KEY-----
+)");
 
 // Send post request to Eauth
 std::string runRequest(std::string request_data) {
@@ -142,7 +172,7 @@ std::string runRequest(std::string request_data) {
             exit(1);
         }
         
-        size_t start = headerData.find(_XOR_("Eauth: "));
+        size_t start = headerData.find(_XOR_("Signature: "));
         if (start == std::string::npos) {
             exit(1);
         }
@@ -151,7 +181,56 @@ std::string runRequest(std::string request_data) {
         if (end == std::string::npos) {
             exit(1);
         }
-        if (generateEauthHeader(message + json, APPLICATION_SECRET) != headerData.substr(start + 7, end - start - 8)) {
+
+        mbedtls_pk_context pk_ctx;
+        mbedtls_rsa_context* rsa_ctx;
+        mbedtls_md_context_t md_ctx;
+        unsigned char hash[32];
+        unsigned char signature[1024];
+        size_t sig_len;
+
+        const std::string header = generateEauthHeader(message + json, APPLICATION_SECRET);
+        const std::string signature_b64 = headerData.substr(start + 11, end - start - 12);
+
+        mbedtls_pk_init(&pk_ctx);
+        mbedtls_md_init(&md_ctx);
+
+        // Parse public key
+        int ret = mbedtls_pk_parse_public_key(&pk_ctx, (const unsigned char*)PUBLIC_KEY_PEM.c_str(), PUBLIC_KEY_PEM.length() + 1);
+        if (ret != 0) {
+            char error_buf[100];
+            mbedtls_strerror(ret, error_buf, 100);
+            exit(1);
+        }
+
+        rsa_ctx = mbedtls_pk_rsa(pk_ctx);
+        if (!rsa_ctx) {
+            exit(1);
+        }
+
+        sig_len = 1024;
+        ret = mbedtls_base64_decode(signature, sig_len, &sig_len,
+            (const unsigned char*)signature_b64.c_str(), signature_b64.length());
+        if (ret != 0) {
+            exit(1);
+        }
+
+        const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+        if (!md_info) {
+            exit(1);
+        }
+
+        ret = mbedtls_md(md_info, (const unsigned char*)header.c_str(), header.length(), hash);
+        if (ret != 0) {
+            exit(1);
+        }
+
+        ret = mbedtls_pk_verify(&pk_ctx, MBEDTLS_MD_SHA256, hash, sizeof(hash), signature, sig_len);
+
+        mbedtls_pk_free(&pk_ctx);
+        mbedtls_md_free(&md_ctx);
+
+        if (ret != 0) {
             exit(1);
         }
     }
